@@ -1,5 +1,5 @@
 Make suitable changes in inventory file at inventory/inventory.cfg and run this playbook using
-ansible-playbook site.yaml -i inventory/inventory.cfg 
+<code>ansible-playbook site.yaml -i inventory/inventory.cfg </code>
 
 
 This playbook will install and configure openresty.
