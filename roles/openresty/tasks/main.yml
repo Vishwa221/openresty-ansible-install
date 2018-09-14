@@ -1,0 +1,71 @@
+---
+- name: Download OpenResty tar
+  get_url:
+    url=https://openresty.org/download/openresty-{{ version }}.tar.gz
+    dest=/tmp
+
+- name: Extract OpenResty
+  unarchive:
+    src=/tmp/openresty-{{ version }}.tar.gz
+    dest=/tmp
+    copy=no
+
+- name: Install OpenResty Dependencies
+  apt: name={{ item }}
+  with_items:
+    - libpcre3-dev
+    - libssl-dev
+    - perl
+    - make
+    - build-essential
+    - curl
+
+- name: Build configure command
+  template: src=config_cmd.j2 dest=/tmp/openresty-{{ version }}/or_configure.sh mode=0755
+
+- name: Configure OpenResty
+  command: chdir=/tmp/openresty-{{ version }} ./or_configure.sh
+
+- name: Compile OpenResty
+  command: chdir=/tmp/openresty-{{ version }} make
+
+- name: Install OpenResty
+  command: chdir=/tmp/openresty-{{ version }} make install
+
+- name: Locate binaries to be linked
+  find:
+    paths: /usr/local/openresty/bin
+    follow: yes
+    recurse: no
+  register: openresty_bins
+
+- name: Put binaries on PATH
+  file:
+    src: "{{ item.path }}"
+    dest: "/usr/bin/{{ item.path | basename}}"
+    state: link
+    owner: root
+    mode: 0755
+  with_items: "{{ openresty_bins.files }}"
+
+- name: Systemd service file
+  template:
+    src: openresty.j2
+    dest: /lib/systemd/system/openresty.service
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Start OpenResty service
+  systemd:
+    state: started
+    name: openresty
+    daemon_reload: true
+
+- name: Post Install Clean-up
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /tmp/openresty-{{ version }}
+    - /tmp/openresty-{{ version }}.tar.gz

@@ -1,0 +1,8 @@
+---
+- name: Install OpenResty
+  hosts: WebServers
+  become: true
+  roles:
+    - openresty
+  vars:
+    version: '1.13.6.2'
